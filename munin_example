@@ -1,0 +1,20 @@
+#!/bin/sh
+# Example of a munin script for a group of events (with predefined list of event IDs)
+
+if [ "$1" = "config" ]; then
+# config - return list of defined event IDs
+cat <<END
+graph_title Number of events in GROUP
+graph_category ecl
+graph_vlabel Number of events per minute
+graph_period minute
+event1.label Event 1
+event2.label Event 2
+event3.label Event 3
+END
+exit 0
+fi
+
+# normal run - return list of keys and values ("<event_id> <value>")
+ecl_reader /path/to/ecl_config.yml -g GROUP -i 5m --last | sed -E 's/:([0-9]+)$/.value \1/'
+

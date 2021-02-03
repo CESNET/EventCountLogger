@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""
+Master (or controller) service, which is needed to periodically reset the counters in Redis.
+"""
+import sys
+import argparse
+import yaml
+
+from event_count_logger import *
+
+LOGFORMAT = "%(asctime)-15s [%(levelname)s] %(message)s"
+LOGDATEFORMAT = "%Y-%m-%dT%H:%M:%S"
+logging.basicConfig(format=LOGFORMAT, datefmt=LOGDATEFORMAT) # log to stdout in defined format
+
+# Parse arguments
+parser = argparse.ArgumentParser(
+    prog="ecl_master",
+    description="Master process (controller) of the EventCountLogger system. It periodically resets the counters in Redis."
+)
+parser.add_argument('config_file', metavar='CONFIG_FILE',
+                    help='Path to a YAML file with configuration, specifying event groups and Redis connection parameters')
+parser.add_argument('-v', '--verbose', action="store_true", default=False,
+                    help="Verbose output - print info about loaded groups and initialization status.")
+# there are currently do debug prints
+# parser.add_argument('-d', '--debug', action="store_true", default=False,
+#                     help="More verbose output - print all actions.")
+
+args = parser.parse_args()
+args.debug = False
+
+# Load configuration
+with open(args.config_file, "r") as f:
+    config = yaml.safe_load(f)
+cfg_groups = config.get("groups", {})
+cfg_redis = config.get("redis", None)
+
+if not cfg_groups:
+    print("WARNING: No groups are specified in configuration, the script will do nothing.", file=sys.stderr)
+
+# Instantiate and run the EventCountLoggerMaster
+master = EventCountLoggerMaster(cfg_groups, cfg_redis, "DEBUG" if args.debug else ("INFO" if args.verbose else "WARNING"))
+master.run()

@@ -1,0 +1,39 @@
+#!/bin/sh
+# Example of a munin script for a group of events (with event IDs defined dynamically)
+
+# Munin always redefine graphs according to the current list of data sources (here event IDs), so we need to remember
+# all event IDs seen.
+# An auxiliary file is used to store a list of all event IDs seen (one ID per line). Every time this script is called,
+# the list of event IDs if fetched from Redis and new ones are added to the file (removal must be done manually).
+
+GROUP="test_group"
+ECL_CONFIG="/path/to/ecl_config.yml"
+# Path to the auxiliary file - munin user must have write permissions there
+EVENT_FILE="/etc/munin/ecl_aux/${GROUP}"
+
+if [ "$1" = "config" ]; then
+  # config - return list of defined event IDs
+
+  # create the auxiliary file if it doesn't exist yet
+  # (exit on failure, probably file permissions are missing)
+  mkdir -p "$(dirname ${EVENT_FILE})" || exit 1
+  touch ${EVENT_FILE} || exit 1
+
+  # read current list from Redis and update the file with the list of all event IDs seen
+  ecl_reader ${ECL_CONFIG} -g ${GROUP} -i 5m --last | sed -E 's/^(.*):.*$/\1/' | sort -u - ${EVENT_FILE} > ${EVENT_FILE}_tmp
+  mv ${EVENT_FILE}_tmp ${EVENT_FILE}
+
+  # print graph configuration and list of "data-sources" (i.e. event_ids from the new aux. file)
+  cat <<END
+graph_title Number of events in ${GROUP}
+graph_category ecl
+graph_vlabel Number of events per minute
+graph_period minute
+END
+  sed -E 's/^(.*)$/\1.label \1/' ${EVENT_FILE}
+  exit 0
+fi
+
+# normal run - return list of keys and values ("<event_id> <value>")
+ecl_reader ${ECL_CONFIG} -g ${GROUP} -i 5m --last | sed -E 's/:([0-9]+)$/.value \1/'
+

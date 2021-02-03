@@ -1,0 +1,20 @@
+redis:
+  host: localhost
+  port: 6379
+  db: 0 # Index of Redis DB used for the counters (it shouldn't be used for anything else)
+
+groups:
+  # A group with two events and two intervals of counter resets.
+  # Use locally cached counters, synchronized with Redis every 2 seconds or when 5 or more occurrences of any of the
+  # event were counted.
+  group1:
+    events: ['event1', 'event2']
+    intervals: ['10s', '1m']
+    sync_interval: 2
+    sync_limit: 5
+  # A group with two events and 30sec interval.
+  # Local counters are not used, every event occurrence is immediately pushed to Redis.
+  group2:
+    events: []
+    auto_declare_events: true
+    intervals: ['30s']

@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""
+Example script to read EventCountLogger counters from Redis (and print them to stdout).
+"""
+import sys
+import argparse
+import yaml
+
+from event_count_logger import *
+
+# TODO: support for dynamically declared events - need to read eventids from Redis, not just config
+#   (use "keys" command, or store list of eventids explicitly?)
+
+# Parse arguments
+parser = argparse.ArgumentParser(
+    prog="ecl_reader",
+    description="Read specified counters from Redis and print them to stdout (part of EventCountLogger system)."
+)
+parser.add_argument('config_file', metavar='CONFIG_FILE',
+                    help='Path to a YAML file with configuration, specifying event groups and Redis connection parameters')
+parser.add_argument('-g', '--group', metavar='GROUP', required=True,
+                    help='Counter group to print')
+parser.add_argument('-i', '--interval', metavar='INT',
+                    help='If events in the group are reset in multiple intervals, specify the interval to read.')
+group = parser.add_mutually_exclusive_group()
+group.add_argument('--last', action='store_true',
+                    help='Print counts in the last completed interval (this is the default).')
+group.add_argument('--current', action='store_true',
+                    help='Print counts in the current (incomplete) interval.')
+group.add_argument('--both', action='store_true',
+                    help='Print counts in both the last and the current interval.')
+args = parser.parse_args()
+
+# Load configuration
+with open(args.config_file, "r") as f:
+    config = yaml.safe_load(f)
+cfg_groups = config.get("groups", {})
+cfg_redis = config.get("redis", None)
+
+group_spec = cfg_groups.get(args.group)
+if not group_spec:
+    print(f"ERROR: Group '{args.group}' not found in configuration", file=sys.stderr)
+    sys.exit(1)
+
+interval = args.interval
+if interval:
+    if interval not in group_spec['intervals']:
+        print(f"ERROR: Interval '{args.interval}' not configured for this group.", file=sys.stderr)
+        sys.exit(1)
+else:
+    if len(group_spec['intervals']) == 1:
+        interval = group_spec['intervals'][0]
+    else:
+        print(f"ERROR: Multiple intervals defined for the group, one must be selected using the '-i' parameter.", file=sys.stderr)
+        sys.exit(1)
+
+# Instantiate the EventCountLogger
+ecl = EventCountLogger(cfg_groups, cfg_redis)
+
+last = not args.current
+current = args.current or args.both
+titles = args.both
+
+# Read and print event counts
+if titles:
+    print("Last:")
+if last:
+    counters = ecl.get_group(args.group).get_counts(interval)
+    for name,cnt in sorted(counters.items()):
+        print(f"{name}:{cnt}")
+if titles:
+    print("Current:")
+if current:
+    counters = ecl.get_group(args.group).get_counts(interval, current=True)
+    for name,cnt in sorted(counters.items()):
+        print(f"{name}:{cnt}")

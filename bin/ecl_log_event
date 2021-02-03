@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Script to log an event passed via command line parameters (used for debugging)"""
+
+import sys
+import argparse
+import yaml
+
+from event_count_logger import *
+
+# Parse arguments
+parser = argparse.ArgumentParser(
+    prog="ecl_log_event",
+    description="Log an event to the EventCountLogger system (for debugging)"
+)
+parser.add_argument('config_file', metavar='CONFIG_FILE',
+                    help='Path to a YAML file with configuration, specifying event groups and Redis connection parameters')
+parser.add_argument('group', metavar='GROUP', help='Event group')
+parser.add_argument('event', metavar='EVENT', help='Event ID')
+parser.add_argument('count', metavar='COUNT', type=int, default=1, nargs="?",
+                    help='Increment counter by this number (default: 1)')
+
+args = parser.parse_args()
+
+# Load configuration
+with open(args.config_file, "r") as f:
+    config = yaml.safe_load(f)
+cfg_groups = config.get("groups", {})
+cfg_redis = config.get("redis", None)
+
+group_spec = cfg_groups.get(args.group)
+if not group_spec:
+    print(f"ERROR: Group '{args.group}' not found in configuration", file=sys.stderr)
+    sys.exit(1)
+
+if args.event not in group_spec['events'] and not group_spec.get('auto_declare_events', False):
+    print(f"ERROR: Event '{args.event}' not configured for this group and 'auto_declare_events' not enabled.", file=sys.stderr)
+    sys.exit(1)
+
+# Instantiate EventCountLogger and log the event
+ecl = EventCountLogger(cfg_groups, cfg_redis)
+group = ecl.get_group(args.group)
+group.log(args.event, args.count)
