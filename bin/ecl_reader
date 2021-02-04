@@ -8,9 +8,6 @@ import yaml
 
 from event_count_logger import *
 
-# TODO: support for dynamically declared events - need to read eventids from Redis, not just config
-#   (use "keys" command, or store list of eventids explicitly?)
-
 # Parse arguments
 parser = argparse.ArgumentParser(
     prog="ecl_reader",
