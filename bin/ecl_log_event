@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """Script to log an event passed via command line parameters (used for debugging)"""
+# Author: Vaclav Bartos <bartos@cesnet.cz>
+# Copyright (c) 2021 CESNET, z.s.p.o.
+# SPDX-License-Identifier: BSD-3-Clause
 
 import sys
 import argparse

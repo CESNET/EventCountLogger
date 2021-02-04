@@ -2,6 +2,10 @@
 """
 Master (or controller) service, which is needed to periodically reset the counters in Redis.
 """
+# Author: Vaclav Bartos <bartos@cesnet.cz>
+# Copyright (c) 2021 CESNET, z.s.p.o.
+# SPDX-License-Identifier: BSD-3-Clause
+
 import sys
 import argparse
 import yaml

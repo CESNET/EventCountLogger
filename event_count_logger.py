@@ -1,6 +1,9 @@
 """
 Module for counting events per time interval using Redis, so it allows to count events across multiple processes.
 """
+# Author: Vaclav Bartos <bartos@cesnet.cz>
+# Copyright (c) 2021 CESNET, z.s.p.o.
+# SPDX-License-Identifier: BSD-3-Clause
 
 from typing import Union, Iterable, Dict, Set, Tuple
 import re
@@ -10,7 +13,7 @@ import time
 from datetime import datetime
 
 # apscheduler loads quite slowly, so we import it later, only when its needed.
-# Thanks to this, start-up of simple scripts (ecl_reader, ecl_log_event) is significantcly faster.
+# Thanks to this, start-up of simple scripts (ecl_reader, ecl_log_event) is significantly faster.
 #from apscheduler.schedulers.background import BackgroundScheduler
 import redis
 

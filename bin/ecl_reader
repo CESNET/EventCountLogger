@@ -2,6 +2,10 @@
 """
 Example script to read EventCountLogger counters from Redis (and print them to stdout).
 """
+# Author: Vaclav Bartos <bartos@cesnet.cz>
+# Copyright (c) 2021 CESNET, z.s.p.o.
+# SPDX-License-Identifier: BSD-3-Clause
+
 import sys
 import argparse
 import yaml
