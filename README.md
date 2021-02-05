@@ -133,6 +133,9 @@ If none of `sync_interval` and `sync_limit` is specified, local counters are not
 Example [Munin](http://munin-monitoring.org/) plugins are included for easy logging and visualization
 (they must be modified for a specific case, a separate plugin should be used for each event group).
 
+Example output:
+
+![Munin graph](https://github.com/CESNET/EventCountLogger/raw/master/munin/example_graph.png)
 
 ---
 
