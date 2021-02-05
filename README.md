@@ -25,6 +25,13 @@ event2:2
 * Multiple time intervals (count number of events in 5 minute and 1 hour intervals at the same time, for example)
 * Local cache for high-rate events, synchronized with the shared counters at a lower rate
 
+## Installation
+
+```shell
+pip install event_count_logger
+```
+
+Python >=3.6 is required.
 
 ## Architecture
 
