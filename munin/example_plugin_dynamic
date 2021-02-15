@@ -34,6 +34,12 @@ END
   exit 0
 fi
 
-# normal run - return list of keys and values ("<event_id> <value>")
-ecl_reader ${ECL_CONFIG} -g ${GROUP} -i 5m --last | sed -E 's/:([0-9]+)$/.value \1/'
+# normal run - return list of keys and values ("<event_id>.value <value>")
+
+# Get values of counters in the last interval
+values=$(ecl_reader ${ECL_CONFIG} -g ${GROUP} -i 5m --last)
+# Print in Munin format
+echo "$values" | sed -E 's/:([0-9]+)$/.value \1/'
+# Add a row with 0 value for each event ID from EVENT_FILE which is not present in the current output
+echo "$values" | sed -E 's/:([0-9]+)$//' | sort | comm -23 ${EVENT_FILE} - | sed -E 's/$/.value 0/'
 
