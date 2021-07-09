@@ -17,6 +17,9 @@ from datetime import datetime
 #from apscheduler.schedulers.background import BackgroundScheduler
 import redis
 
+# TODO functions to validate configuration (at least existence and types of mandatory fields of group configs)
+#    use in EventCountLogger and ecl_* binaries
+
 DEFAULT_REDIS_CONFIG = {
     'host': 'localhost',
     'port': 6379,
@@ -45,10 +48,15 @@ class EventCountLogger:
         self.log.setLevel(log_level)
         self.log_level = log_level
 
+        self.warning_printed = set() # group names requested but not found in config so warning was issued
+
+        self.log.debug(f"Configured event groups: {cfg_groups}")
+
         # Load Redis config and create an instance of Redis connection wrapper
         self.redis_config = DEFAULT_REDIS_CONFIG.copy()
         if cfg_redis:
             self.redis_config.update(cfg_redis)
+        self.log.info(f"Connecting to Redis using params: {self.redis_config}")
         # Use BlockingConnectionPool - it is thread-safe
         connection_pool = redis.BlockingConnectionPool(max_connections=50, timeout=10, **self.redis_config)
         self.redis = redis.Redis(connection_pool=connection_pool)
@@ -67,12 +75,15 @@ class EventCountLogger:
         """Return string specifying loaded configuration (for debugging)."""
         return f"EventCountLogger configuration:\nredis: {self.redis_config}\ngroups: {self._all_groups}\n"
 
-    def get_group(self, name: str) -> 'Union[EventGroup,None]':
+    def get_group(self, name:str, dummy:bool=False, warn:bool=True) -> 'Union[EventGroup,DummyEventGroup,None]':
         """
         Create EventGroup instance representing given event group (with parameters from configuration),
         or return reference to the existing one.
         :param name: Name of the group
-        :return: An instance of EventGroup or None if no group with given name is found in configuration
+        :param dummy: Return DummyEventGroup instance (instead of None) if the group is not in configuration
+        :param warn: Print a warning log message if the group is not in configuration (only one message for each
+                     group is printed during the lifetime of the EventCountLogger instance)
+        :return: An instance of EventGroup if the group is configured, None or DummyEventGroup otherwise
         """
         # If there already is an instance representing this group, return reference to it
         group = self._instantiated_groups.get(name, None)
@@ -80,8 +91,13 @@ class EventCountLogger:
             return group
 
         # Otherwise create a new instance according to loaded configuration and store it
+        # If it isn't configured, return DummyEventGroup or None
         if name not in self._all_groups:
-            # TODO group not specified in configuration (print some error)
+            if warn and name not in self.warning_printed:
+                self.log.warning(f"No configuration for event group '{name}' found, events of this group will not be logged.")
+                self.warning_printed.add(name)
+            if dummy:
+                return DUMMY_EVENT_GROUP
             return None
 
         grp_spec = self._all_groups[name]
@@ -90,6 +106,10 @@ class EventCountLogger:
                            grp_spec.get('sync_interval', None), grp_spec.get('sync_limit'), log_level=self.log_level)
         self._instantiated_groups[name] = group
         return group
+
+    def __getitem__(self, item):
+        """As get_group, but return DummyEventGroup when no group is configured."""
+        return self.get_group(item, dummy=True, warn=True)
 
 
 class EventGroup:
@@ -137,10 +157,11 @@ class EventGroup:
 
         # local counters structure: { "5m": { "eventX": <count>, "eventY": <count> }, "1h": { "eventX": <count> ..} ..}
         if self.use_local_counters:
-            self.logger.info("This group is using local counters")
+            self.logger.info("Instance created. This group uses local counters")
             self.counters = {interval: {x: 0 for x in self.event_ids} for interval in self.intervals}
             self.counter_lock = threading.Lock()  # Lock to allow safe manipulations with local counters by multiple threads
         else:
+            self.logger.info("Instance created.")
             self.counters = None
 
         if self.sync_interval is not None:
@@ -326,6 +347,9 @@ class DummyEventGroup:
     """
     def log(self, event_id: str, count: int = 1):
         return
+
+# A pre-created instance of DummyEventGroup
+DUMMY_EVENT_GROUP = DummyEventGroup()
 
 
 class EventCountLoggerMaster(EventCountLogger):
