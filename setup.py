@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="event_count_logger",
-    version="1.0.0",
+    version="1.1.0",
     author="Václav Bartoš",
     author_email="bartos@cesnet.cz",
     description="Count number of events per time interval(s) in a distributed system using shared counters in Redis.",
@@ -16,6 +16,7 @@ setuptools.setup(
     #packages=setuptools.find_packages(),
     py_modules=["event_count_logger"],
     scripts=["bin/ecl_master", "bin/ecl_log_event", "bin/ecl_reader"],
+    install_requires=["redis", "apscheduler", "pyyaml"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
