@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="event_count_logger",
-    version="1.1.0",
+    version="1.1.1",
     author="Václav Bartoš",
     author_email="bartos@cesnet.cz",
     description="Count number of events per time interval(s) in a distributed system using shared counters in Redis.",
